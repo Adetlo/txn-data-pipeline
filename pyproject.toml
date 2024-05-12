@@ -1,0 +1,63 @@
+[project]
+name = "txn-data-pipeline"
+version = "0.1.0"
+description = "Educational financial transaction data pipeline: validation, reconciliation, lineage and idempotent batch processing."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.12"
+authors = [{ name = "Adetlo" }]
+dependencies = [
+  "pydantic>=2.5",
+  "pydantic-settings>=2.1",
+  "polars>=0.20",
+  "pandera[polars]>=0.19",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.3",
+  "mypy>=1.8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/txn_pipeline"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "S", "RUF", "SIM", "DTZ", "T20", "PL"]
+ignore = ["RUF012", "PLR0913", "PLR0917", "PLR2004", "PLR0912", "PLR0915", "PLR0911", "PLC0415"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "S108", "DTZ", "PLR"]
+"src/txn_pipeline/contracts/countries.py" = ["E501"]  # reference data tables
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+pretty = true
+plugins = ["pydantic.mypy"]
+mypy_path = "src"
+packages = ["txn_pipeline"]
+
+[[tool.mypy.overrides]]
+module = ["pandera", "pandera.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra --strict-markers"
+filterwarnings = ["error::DeprecationWarning:txn_pipeline.*"]
