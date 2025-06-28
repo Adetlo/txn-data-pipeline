@@ -12,6 +12,7 @@ dependencies = [
   "polars>=0.20",
   "pandera[polars]>=0.19",
   "pyarrow>=15",
+  "structlog>=24.1",
 ]
 
 [project.optional-dependencies]
