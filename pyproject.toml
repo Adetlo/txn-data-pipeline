@@ -14,6 +14,9 @@ dependencies = [
   "pyarrow>=15",
   "structlog>=24.1",
   "duckdb>=1.1",
+  "sqlalchemy>=2.0.30",
+  "alembic>=1.13",
+  "psycopg[binary]>=3.2",
 ]
 
 [project.optional-dependencies]
@@ -41,6 +44,7 @@ ignore = ["RUF012", "PLR0913", "PLR0917", "PLR2004", "PLR0912", "PLR0915", "PLR0
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S105", "S106", "S108", "DTZ", "PLR"]
+"migrations/**" = ["I001", "E501"]
 "src/txn_pipeline/contracts/countries.py" = ["E501"]  # reference data tables
 
 [tool.ruff.format]
