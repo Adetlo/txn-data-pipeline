@@ -17,9 +17,14 @@ dependencies = [
   "sqlalchemy>=2.0.30",
   "alembic>=1.13",
   "psycopg[binary]>=3.2",
+  "typer>=0.12",
+  "rich>=13.7",
 ]
 
-[project.optional-dependencies]
+[project.scripts]
+txn-pipeline = "txn_pipeline.cli.main:app"
+
+[dependency-groups]
 dev = [
   "pytest>=8.0",
   "ruff>=0.3",
@@ -33,10 +38,13 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/txn_pipeline"]
 
+[tool.uv]
+package = true
+
 [tool.ruff]
 target-version = "py312"
 line-length = 100
-src = ["src", "tests"]
+src = ["src", "tests", "scripts"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "N", "S", "RUF", "SIM", "DTZ", "T20", "PL"]
@@ -44,7 +52,9 @@ ignore = ["RUF012", "PLR0913", "PLR0917", "PLR2004", "PLR0912", "PLR0915", "PLR0
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S105", "S106", "S108", "DTZ", "PLR"]
+"scripts/**" = ["T201", "S101", "E501"]
 "migrations/**" = ["I001", "E501"]
+"src/txn_pipeline/cli/main.py" = ["E501"]  # Typer option declarations
 "src/txn_pipeline/contracts/countries.py" = ["E501"]  # reference data tables
 
 [tool.ruff.format]
