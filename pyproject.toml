@@ -26,9 +26,13 @@ txn-pipeline = "txn_pipeline.cli.main:app"
 
 [dependency-groups]
 dev = [
-  "pytest>=8.0",
-  "ruff>=0.3",
-  "mypy>=1.8",
+  "pytest>=8.3",
+  "pytest-cov>=5.0",
+  "hypothesis>=6.100",
+  "ruff>=0.6",
+  "mypy>=1.11",
+  "pgserver>=0.1.4; sys_platform != 'win32'",
+  "pandas-stubs>=2.2",
 ]
 
 [build-system]
@@ -70,11 +74,25 @@ mypy_path = "src"
 packages = ["txn_pipeline"]
 
 [[tool.mypy.overrides]]
-module = ["pandera", "pandera.*", "duckdb", "duckdb.*", "pyarrow", "pyarrow.*"]
+module = ["pgserver", "pgserver.*", "pandera", "pandera.*", "duckdb", "duckdb.*", "pyarrow", "pyarrow.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-ra --strict-markers"
+markers = [
+  "postgres: tests that require a PostgreSQL database",
+  "slow: tests that process larger volumes",
+]
 filterwarnings = ["error::DeprecationWarning:txn_pipeline.*"]
+
+[tool.coverage.run]
+source = ["txn_pipeline"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+precision = 1
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "raise NotImplementedError", "@overload"]
