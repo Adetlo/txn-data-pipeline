@@ -1,0 +1,42 @@
+name: txn-data-pipeline
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      # Local development credentials only; obviously synthetic.
+      POSTGRES_USER: txn_pipeline
+      POSTGRES_PASSWORD: txn_pipeline_dev_only
+      POSTGRES_DB: txn_pipeline
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U txn_pipeline -d txn_pipeline"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      METADATA_DATABASE_URL: postgresql+psycopg://txn_pipeline:txn_pipeline_dev_only@postgres:5432/txn_pipeline
+      DATA_ROOT: /app/data
+      LOG_LEVEL: INFO
+      LOG_FORMAT: json
+      ACTOR: SYSTEM
+    volumes:
+      - pipeline-data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # `docker compose up --build` runs the full demo once; `docker compose run --rm pipeline <cmd>`
+    # runs any other CLI command against the same PostgreSQL metadata and data volume.
+    command: ["txn-pipeline", "demo"]
+
+volumes:
+  pgdata:
+  pipeline-data:
