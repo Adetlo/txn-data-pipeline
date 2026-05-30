@@ -1,0 +1,165 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint, type-check, unit and property tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Ruff (lint)
+        run: uv run ruff check .
+
+      - name: Ruff (format check)
+        run: uv run ruff format --check .
+
+      - name: Mypy
+        run: uv run mypy
+
+      - name: Pytest with coverage (SQLite metadata; PostgreSQL tests run in the integration job)
+        run: uv run pytest -m "not postgres" --cov --cov-report=term-missing --cov-report=xml --cov-fail-under=85
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+
+  integration:
+    name: Migrations, integration and e2e tests (PostgreSQL ${{ matrix.postgres }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        postgres: ["16"]
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}-alpine
+        env:
+          POSTGRES_USER: txn_pipeline
+          POSTGRES_PASSWORD: ci_only_password
+          POSTGRES_DB: txn_pipeline_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U txn_pipeline -d txn_pipeline_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql+psycopg://txn_pipeline:ci_only_password@localhost:5432/txn_pipeline_test
+      METADATA_DATABASE_URL: postgresql+psycopg://txn_pipeline:ci_only_password@localhost:5432/txn_pipeline_test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Apply migrations to a fresh PostgreSQL
+        run: |
+          uv run alembic upgrade head
+          uv run alembic current
+          uv run alembic downgrade base
+          uv run alembic upgrade head
+
+      - name: Integration and e2e tests (PostgreSQL + SQLite)
+        run: uv run pytest tests/integration tests/e2e -q
+
+      - name: CLI demo against PostgreSQL
+        run: |
+          uv run txn-pipeline --log-format json demo --records 3000 --seed 7
+          uv run txn-pipeline batches
+          uv run txn-pipeline query duplicate_rate
+
+  security:
+    name: Dependency and code security audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: pip-audit (known vulnerabilities in locked dependencies)
+        run: |
+          uv export --no-emit-project --no-hashes --format requirements-txt -o requirements-audit.txt
+          uv run pip-audit -r requirements-audit.txt --strict --desc on
+
+      - name: Bandit (static security analysis)
+        run: uv run bandit -c pyproject.toml -r src -q
+
+  docker:
+    name: Docker image build and smoke demo
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: txn-data-pipeline:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test (PostgreSQL metadata + full demo in the container)
+        run: |
+          docker network create ci-net
+          docker run -d --name pg --network ci-net \
+            -e POSTGRES_USER=txn_pipeline -e POSTGRES_PASSWORD=ci_only_password -e POSTGRES_DB=txn_pipeline \
+            postgres:16-alpine
+          for i in $(seq 1 30); do docker exec pg pg_isready -U txn_pipeline -d txn_pipeline && break; sleep 1; done
+          docker run --rm --name pipeline --network ci-net \
+            -e METADATA_DATABASE_URL=postgresql+psycopg://txn_pipeline:ci_only_password@pg:5432/txn_pipeline \
+            txn-data-pipeline:ci txn-pipeline demo --records 2000
+          docker run --rm --network ci-net \
+            -e METADATA_DATABASE_URL=postgresql+psycopg://txn_pipeline:ci_only_password@pg:5432/txn_pipeline \
+            txn-data-pipeline:ci txn-pipeline batches
