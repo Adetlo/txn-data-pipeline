@@ -1,0 +1,21 @@
+{
+  "transaction_id": "TXN-SYN-20261013-000001",
+  "source_system": "SYNTHETIC_CORE",
+  "account_id": "ACC-SYN-000001",
+  "counterparty_id": "CP-SYN-000203",
+  "transaction_type": "TRANSFER",
+  "amount": "250.00",
+  "currency": "GBP",
+  "booking_date": "2026-10-13",
+  "value_date": "2026-10-13",
+  "transaction_timestamp": "2026-10-13T09:31:22Z",
+  "channel": "ONLINE",
+  "country": "GB",
+  "reference": "DEMO-TRANSFER-001",
+  "status": "POSTED",
+  "merchant_category": null,
+  "beneficiary_country": "GB",
+  "is_reversal": false,
+  "original_transaction_id": null,
+  "schema_version": "financial-transaction/1"
+}
