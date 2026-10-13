@@ -14,6 +14,12 @@ idempotent processing, reconciliation, lineage, restartability and operational o
 ![Python 3.12](https://img.shields.io/badge/python-3.12-blue)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
+**At a glance:** multi-format ingestion (CSV, JSON Lines, Parquet) · versioned schema validation ·
+18 data-quality rules · deduplication and conflict detection · idempotent, content-addressed batches ·
+quarantine for every rejected row · normalisation to UTC and ISO codes · row-count and per-currency
+reconciliation · batch and row-level lineage · checkpointed, restartable stages · partitioned Parquet
+curated layer · DuckDB star schema · 237 automated tests at 98.5% coverage.
+
 ## Contents
 
 1. [Overview](#1-overview)
@@ -50,16 +56,21 @@ and per-currency amount totals, writes partitioned **curated Parquet**, and rebu
 **star schema** for analytics. Every step is checkpointed in a PostgreSQL (or SQLite) metadata
 store with lineage and audit fields, and re-running the same file is a no-op.
 
-It complements [corebank-ledger](https://github.com/Adetlo/corebank-ledger), a double-entry
-ledger service by the same author. Conceptually:
+### Relationship to corebank-ledger
+
+[corebank-ledger](https://github.com/Adetlo/corebank-ledger) demonstrates transaction-system
+integrity and posting controls: a double-entry ledger with idempotent posting, balanced-entry
+invariants and reversals. txn-data-pipeline demonstrates the downstream side: data quality,
+lineage, reconciliation and analytics preparation for transaction exports.
 
 ```
 corebank-ledger  ->  synthetic transaction export  ->  txn-data-pipeline  ->  validated / enriched / reconciled data  ->  analytics / ML-ready datasets
 ```
 
-The two repositories are independent at runtime. This one ships a generic input contract, sample
-files, and an optional adapter for exports shaped like the corebank-ledger demo
-(`--adapter corebank-ledger`, see [docs/DATA_CONTRACT.md](docs/DATA_CONTRACT.md)).
+The projects complement each other but are independently runnable and there is no live integration
+between them. This repository ships a generic input contract, sample files and an optional adapter for
+exports shaped like the corebank-ledger demo (`--adapter corebank-ledger`, see
+[docs/DATA_CONTRACT.md](docs/DATA_CONTRACT.md)).
 
 ## 2. Why this project exists
 
@@ -454,15 +465,23 @@ unbalanced reconciliation prevents COMPLETED.
 
 ## 18. Performance
 
-Single process, Apple Silicon laptop, SQLite metadata, CSV input, warehouse rebuild included
-([docs/PERFORMANCE.md](docs/PERFORMANCE.md) has the per-stage breakdown and caveats):
+A basic local benchmark, not a throughput claim. Context for every number below:
+
+* Apple Silicon laptop, single local process (no cluster, no parallelism)
+* CSV input generated with the default bad-data rates
+* SQLite metadata store on a local SSD
+* DuckDB warehouse rebuild included in the elapsed time
 
 | rows | elapsed | records/s | peak RSS |
 |-----:|--------:|----------:|---------:|
 | 10,150 | 0.92 s | ~11,000 | ~370 MB |
 | 101,500 | 7.53 s | ~13,500 | ~1.2 GB |
 
-These are local numbers for a deliberately simple architecture; no production throughput is implied.
+v1 reads the whole input file into memory and keeps raw rows, validated records and the Polars frame
+alive at once, so memory becomes significant around 100k rows (about 1.2 GB peak RSS above). At the
+same volume the metadata registry upsert is the slowest stage. Chunked, streaming processing is a
+roadmap item, not a current capability. [docs/PERFORMANCE.md](docs/PERFORMANCE.md) has the per-stage
+breakdown. No enterprise-scale throughput is implied.
 
 ## 19. Security
 
@@ -494,16 +513,22 @@ conflict, because the file hash is the identity.
 
 ## 21. Limitations
 
-* Single process, whole file in memory; sized for 10k to 100k rows per file.
-* The warehouse is a full rebuild on every run; fine at this scale, not incremental.
-* Cross-batch duplicate detection relies on the metadata registry; there is no referential check
-  that a reversal's `original_transaction_id` exists.
-* SQLite metadata is for local single-user runs only; concurrent batches need PostgreSQL.
-* No scheduler, no alerting, no metrics endpoint; metrics are logged and stored per batch.
-* Enrichment is static and illustrative (amount bands are currency-agnostic by design).
-* `validate` performs intra-batch checks only; cross-batch duplicates need a registered run.
-* There is no distributed lock: a batch left `RUNNING` by a crashed process is simply resumed by the
-  next run of the same file, so two concurrent runs of one file are not supported.
+These are conscious v1 scope decisions, not oversights. The project is an educational
+implementation and does not claim production readiness for regulated financial workloads.
+
+* **Single-process execution.** One batch at a time, one Python process, no parallelism.
+* **Whole-file in-memory processing.** Sized for 10k to 100k rows per file; memory grows linearly.
+* **Metadata registry bottleneck.** Every accepted transaction id is upserted into the metadata
+  database, which dominates runtime at larger local volumes (about 3 s of the 7.5 s at 100k rows).
+* **Warehouse full rebuild.** The DuckDB star schema is rebuilt from all curated Parquet on every run.
+* **No reversal referential validation.** A reversal must name an original transaction, but the
+  pipeline does not check that the original exists.
+* **No same-file concurrent-run lock.** A batch left `RUNNING` by a crashed process is resumed by
+  the next run of the same file; two simultaneous runs of one file are not supported.
+* **SQLite is for local, single-user execution only.** PostgreSQL is the intended metadata store for
+  anything resembling realistic persistence or concurrent access.
+* **Static, illustrative enrichment.** Amount bands are currency-agnostic by design.
+* **`validate` is intra-batch only.** Cross-batch duplicates need a registered run.
 
 ## 22. Roadmap
 
