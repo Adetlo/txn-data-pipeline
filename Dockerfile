@@ -11,16 +11,16 @@ ENV UV_COMPILE_BYTECODE=1 \
 WORKDIR /app
 
 # Third-party dependencies first for layer caching.
-COPY pyproject.toml ./
+COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev --no-install-project
+    uv sync --frozen --no-dev --no-install-project
 
 # Then the project itself.
 COPY src ./src
 COPY migrations ./migrations
 COPY alembic.ini README.md ./
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev
+    uv sync --frozen --no-dev
 
 # ---- runtime: minimal image, non-root user ----------------------------------
 FROM python:3.12-slim-bookworm AS runtime
