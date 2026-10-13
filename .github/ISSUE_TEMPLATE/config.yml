@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/Adetlo/txn-data-pipeline/security/advisories/new
+    about: Please report vulnerabilities privately through GitHub security advisories, not as a public issue.
+  - name: Related portfolio projects
+    url: https://github.com/Adetlo
+    about: corebank-ledger, txn-data-pipeline and fraud-detection-ml are independent repositories; open the issue in the one that owns the behaviour.

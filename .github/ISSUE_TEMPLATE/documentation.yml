@@ -1,0 +1,23 @@
+name: Documentation
+description: A README, docs/ page or ADR in Transaction Data Pipeline is unclear, outdated or missing something.
+title: "docs: "
+labels: ["documentation"]
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Unclear section
+      description: File and heading (for example README.md > Testing, or docs/ARCHITECTURE.md).
+    validations:
+      required: true
+  - type: textarea
+    id: issue
+    attributes:
+      label: What is unclear or wrong
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested improvement
+      description: Proposed wording, a missing example, or a diagram that would help.
