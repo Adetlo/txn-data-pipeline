@@ -18,7 +18,7 @@ idempotent processing, reconciliation, lineage, restartability and operational o
 18 data-quality rules · deduplication and conflict detection · idempotent, content-addressed batches ·
 quarantine for every rejected row · normalisation to UTC and ISO codes · row-count and per-currency
 reconciliation · batch and row-level lineage · checkpointed, restartable stages · partitioned Parquet
-curated layer · DuckDB star schema · unit, property, integration and end-to-end tests.
+curated layer · DuckDB star schema · 237 automated tests at 98.5% coverage.
 
 ## Contents
 
@@ -55,6 +55,28 @@ versions of the same transaction, normalises and enriches the survivors, **recon
 and per-currency amount totals, writes partitioned **curated Parquet**, and rebuilds a DuckDB
 **star schema** for analytics. Every step is checkpointed in a PostgreSQL (or SQLite) metadata
 store with lineage and audit fields, and re-running the same file is a no-op.
+
+### Related portfolio projects
+
+This is the middle of three independently runnable projects that together sketch a miniature
+banking technology estate:
+
+```
+corebank-ledger        transaction integrity: double-entry ledger, idempotent posting, reversals
+      |                synthetic transaction export
+txn-data-pipeline      data quality, reconciliation, lineage, analytics-ready modelling  (this repository)
+      |                curated, reconciled transactions
+fraud-detection-ml     fraud risk scoring, model governance, monitored inference
+```
+
+* Upstream: [corebank-ledger](https://github.com/Adetlo/corebank-ledger) models the transaction
+  system whose exports this pipeline would curate. An optional adapter accepts exports shaped like
+  its demo (`--adapter corebank-ledger`, see [docs/DATA_CONTRACT.md](docs/DATA_CONTRACT.md)).
+* Downstream: [fraud-detection-ml](https://github.com/Adetlo/fraud-detection-ml) scores
+  transactions for fraud risk and ships its own adapter for this pipeline's curated Parquet shape.
+
+The projects complement each other but there is no live integration between them: each defines
+its own contract, sample data and runtime. Overview on the [GitHub profile](https://github.com/Adetlo).
 
 ## 2. Why this project exists
 
@@ -165,20 +187,20 @@ original payload, rule id, reason, stage and batch id.
 
 ## 6. Input contract
 
-Schema version `financial-transaction/1`.
+Schema version `financial-transaction/1` ([docs/DATA_CONTRACT.md](docs/DATA_CONTRACT.md)).
 
 ```json
 {
-  "transaction_id": "TXN-SYN-20260930-000001",
+  "transaction_id": "TXN-SYN-20261013-000001",
   "source_system": "SYNTHETIC_CORE",
   "account_id": "ACC-SYN-000001",
   "counterparty_id": "CP-SYN-000203",
   "transaction_type": "TRANSFER",
   "amount": "250.00",
   "currency": "GBP",
-  "booking_date": "2026-09-30",
-  "value_date": "2026-09-30",
-  "transaction_timestamp": "2026-09-30T09:31:22Z",
+  "booking_date": "2026-10-13",
+  "value_date": "2026-10-13",
+  "transaction_timestamp": "2026-10-13T09:31:22Z",
   "channel": "ONLINE",
   "country": "GB",
   "reference": "DEMO-TRANSFER-001",
@@ -198,7 +220,7 @@ curated frame stores `amount` as `decimal(18,4)` for analytics **and** `amount_m
 
 ## 7. Data quality
 
-Every rule has a stable identifier, a severity and a stage (`contracts/rules.py`).
+Every rule has a stable identifier, a severity and a stage ([docs/DATA_QUALITY.md](docs/DATA_QUALITY.md)).
 
 | Rule | Severity | Meaning |
 |------|----------|---------|
@@ -317,13 +339,14 @@ txn-data-pipeline/
 │   └── exceptions.py
 ├── migrations/              # Alembic (dialect-neutral initial migration)
 ├── tests/                   # unit / integration / property / e2e
-├── examples/                # reconciliation report from the demo run, CLI cheat sheet
+├── data/samples/            # tiny committed synthetic fixtures
+├── examples/                # canonical record, corebank-shaped export, CLI cheat sheet
 ├── scripts/                 # benchmark.py, generate_synthetic_data.py
 ├── warehouse/               # how to use the DuckDB warehouse directly
-├── docs/                    # architecture, operations, lineage, reconciliation, warehouse model, security notes
+├── docs/                    # architecture, contract, quality, reconciliation, lineage, model, operations, performance, security, ADR/
 ├── docker/entrypoint.sh, Dockerfile, docker-compose.yml
 ├── .github/workflows/ci.yml
-└── pyproject.toml, alembic.ini, .env.example, LICENSE
+└── pyproject.toml, alembic.ini, .env.example, LICENSE, SECURITY.md, CONTRIBUTING.md
 ```
 
 ## 13. Quick start
@@ -346,7 +369,7 @@ To use PostgreSQL instead of SQLite:
 ```bash
 export METADATA_DATABASE_URL=postgresql+psycopg://txn_pipeline:txn_pipeline_dev_only@localhost:5432/txn_pipeline
 uv run txn-pipeline db-upgrade
-uv run txn-pipeline run --input data/incoming/txns.csv --source SYNTHETIC_CORE
+uv run txn-pipeline run --input data/samples/transactions_sample.csv --source SYNTHETIC_CORE
 ```
 
 ## 14. CLI examples
@@ -363,7 +386,7 @@ txn-pipeline quarantine --batch-id <uuid> --rule DQ006_DUPLICATE_TRANSACTION --r
 txn-pipeline warehouse-build
 txn-pipeline query                                                     # list bundled queries
 txn-pipeline query daily_value_by_currency --limit 30
-txn-pipeline run --input data/incoming/ledger_export.jsonl --adapter corebank-ledger --source COREBANK_LEDGER_DEMO
+txn-pipeline run --input examples/corebank_ledger_export.jsonl --adapter corebank-ledger --source COREBANK_LEDGER_DEMO
 ```
 
 Bundled analytical queries: `daily_volume`, `daily_value_by_currency`, `top_transaction_types`,
@@ -423,8 +446,9 @@ uv run pytest -m "not postgres"    # skip PostgreSQL-backed tests
 TEST_DATABASE_URL=postgresql+psycopg://... uv run pytest -m postgres
 ```
 
-PostgreSQL-backed tests use an embedded server locally and a service container in CI; the rest
-run on SQLite.
+Current state: **237 tests** (200 unit, 26 integration, 7 property, 4 end-to-end) passing in about
+15 seconds locally, **98.5% line and branch coverage** of `txn_pipeline`. PostgreSQL-backed tests use
+an embedded server locally and a service container in CI; the rest run on SQLite.
 
 Suites:
 
@@ -462,8 +486,8 @@ A basic local benchmark, not a throughput claim. Context for every number below:
 v1 reads the whole input file into memory and keeps raw rows, validated records and the Polars frame
 alive at once, so memory becomes significant around 100k rows (about 1.2 GB peak RSS above). At the
 same volume the metadata registry upsert is the slowest stage. Chunked, streaming processing is a
-roadmap item, not a current capability. `scripts/benchmark.py` reproduces the measurement. No
-enterprise-scale throughput is implied.
+roadmap item, not a current capability. [docs/PERFORMANCE.md](docs/PERFORMANCE.md) has the per-stage
+breakdown. No enterprise-scale throughput is implied.
 
 ## 19. Security
 
@@ -472,20 +496,20 @@ configuration (`.env.example` holds fictional local values). Quarantine files co
 *synthetic* rows here, but in a real system rejected data is still sensitive and needs the same
 controls as curated data. A production deployment would additionally require encryption at rest
 and in transit, access control, retention policies and data classification. This demo does not
-claim to be production-compliant. See [docs/SECURITY.md](docs/SECURITY.md).
+claim to be production-compliant. See [SECURITY.md](SECURITY.md) and
+[docs/SECURITY.md](docs/SECURITY.md).
 
 ## 20. Design decisions
 
-The main decisions, in the order they were taken:
+Architecture decision records live in [docs/ADR](docs/ADR):
 
-* Money is `Decimal` at every boundary; the curated frame also carries `amount_minor` integers
-  so reconciliation arithmetic never touches binary floats.
-* Parquet is the curated format, partitioned by booking year and month, one file per batch.
-* DuckDB is the local analytical engine; the star schema is a full rebuild over curated Parquet.
-* PostgreSQL holds pipeline metadata, with a dialect-neutral SQLite fallback for local runs.
-* Batches are content-addressed by SHA-256 and cross-batch idempotency uses a transaction registry.
-* Invalid records are quarantined with stable rule ids instead of being dropped or crashing the batch.
-* Warehouse surrogate keys are deterministic so a rebuild is idempotent.
+* [0001](docs/ADR/0001-use-decimal-for-money.md) Decimal for money; `amount_minor` integers for arithmetic
+* [0002](docs/ADR/0002-parquet-as-curated-format.md) Parquet as the curated format, partitioned by booking year and month
+* [0003](docs/ADR/0003-duckdb-for-local-analytics.md) DuckDB for local analytics (and why not dbt)
+* [0004](docs/ADR/0004-postgresql-for-pipeline-metadata.md) PostgreSQL for metadata with a dialect-neutral SQLite fallback
+* [0005](docs/ADR/0005-file-hash-idempotency.md) Content-addressed batches and the transaction registry
+* [0006](docs/ADR/0006-quarantine-invalid-records.md) Quarantine instead of drop or crash
+* [0007](docs/ADR/0007-deterministic-surrogate-keys.md) Deterministic surrogate keys in the warehouse
 
 Other choices worth calling out: per-record Pydantic validation (slower than vectorised checks,
 but it is what makes row-level quarantine with precise rule ids possible); the batch is marked
