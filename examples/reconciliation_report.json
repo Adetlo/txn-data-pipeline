@@ -1,0 +1,89 @@
+{
+  "accepted_records": 9750,
+  "accounted_records": 10150,
+  "balanced": true,
+  "batch_id": "a9006f18-b277-4002-88f8-22ccdd5f389e",
+  "conflict_records": 101,
+  "cross_batch_duplicates": 0,
+  "curated_records": 9750,
+  "currency_totals": {
+    "AUD": {
+      "balanced": true,
+      "curated": "38166.74",
+      "curated_count": 388,
+      "difference": "0.00",
+      "source": "38166.74",
+      "source_count": 388
+    },
+    "CHF": {
+      "balanced": true,
+      "curated": "36171.68",
+      "curated_count": 413,
+      "difference": "0.00",
+      "source": "36171.68",
+      "source_count": 413
+    },
+    "EUR": {
+      "balanced": true,
+      "curated": "198189.49",
+      "curated_count": 1924,
+      "difference": "0.00",
+      "source": "198189.49",
+      "source_count": 1924
+    },
+    "GBP": {
+      "balanced": true,
+      "curated": "433465.40",
+      "curated_count": 4296,
+      "difference": "0.00",
+      "source": "433465.40",
+      "source_count": 4296
+    },
+    "JPY": {
+      "balanced": true,
+      "curated": "7701563",
+      "curated_count": 547,
+      "difference": "0",
+      "source": "7701563",
+      "source_count": 547
+    },
+    "SGD": {
+      "balanced": true,
+      "curated": "39005.97",
+      "curated_count": 410,
+      "difference": "0.00",
+      "source": "39005.97",
+      "source_count": 410
+    },
+    "USD": {
+      "balanced": true,
+      "curated": "193457.29",
+      "curated_count": 1772,
+      "difference": "0.00",
+      "source": "193457.29",
+      "source_count": 1772
+    }
+  },
+  "difference": 0,
+  "duplicate_records": 99,
+  "exact_duplicates": 66,
+  "idempotent_duplicates": 33,
+  "notes": [],
+  "rejected_records": 301,
+  "rule_counts": {
+    "DQ001_MISSING_TRANSACTION_ID": 24,
+    "DQ002_INVALID_CURRENCY": 14,
+    "DQ003_INVALID_AMOUNT": 63,
+    "DQ004_BOOKING_OUTSIDE_ALLOWED_RANGE": 13,
+    "DQ005_VALUE_DATE_TOO_FAR_FROM_BOOKING": 100,
+    "DQ006_DUPLICATE_TRANSACTION": 101,
+    "DQ007_UNKNOWN_STATUS": 14,
+    "DQ008_INVALID_COUNTRY_CODE": 20,
+    "DQ009_INVALID_TIMESTAMP": 13,
+    "DQ010_REVERSAL_MISSING_ORIGINAL": 11,
+    "DQ011_TIMESTAMP_BOOKING_MISMATCH": 13,
+    "SCH003_UNKNOWN_TRANSACTION_TYPE": 15,
+    "SCH006_INVALID_DATE_FORMAT": 13
+  },
+  "source_records": 10150
+}
