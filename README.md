@@ -56,21 +56,27 @@ and per-currency amount totals, writes partitioned **curated Parquet**, and rebu
 **star schema** for analytics. Every step is checkpointed in a PostgreSQL (or SQLite) metadata
 store with lineage and audit fields, and re-running the same file is a no-op.
 
-### Relationship to corebank-ledger
+### Related portfolio projects
 
-[corebank-ledger](https://github.com/Adetlo/corebank-ledger) demonstrates transaction-system
-integrity and posting controls: a double-entry ledger with idempotent posting, balanced-entry
-invariants and reversals. txn-data-pipeline demonstrates the downstream side: data quality,
-lineage, reconciliation and analytics preparation for transaction exports.
+This is the middle of three independently runnable projects that together sketch a miniature
+banking technology estate:
 
 ```
-corebank-ledger  ->  synthetic transaction export  ->  txn-data-pipeline  ->  validated / enriched / reconciled data  ->  analytics / ML-ready datasets
+corebank-ledger        transaction integrity: double-entry ledger, idempotent posting, reversals
+      |                synthetic transaction export
+txn-data-pipeline      data quality, reconciliation, lineage, analytics-ready modelling  (this repository)
+      |                curated, reconciled transactions
+fraud-detection-ml     fraud risk scoring, model governance, monitored inference
 ```
 
-The projects complement each other but are independently runnable and there is no live integration
-between them. This repository ships a generic input contract, sample files and an optional adapter for
-exports shaped like the corebank-ledger demo (`--adapter corebank-ledger`, see
-[docs/DATA_CONTRACT.md](docs/DATA_CONTRACT.md)).
+* Upstream: [corebank-ledger](https://github.com/Adetlo/corebank-ledger) models the transaction
+  system whose exports this pipeline would curate. An optional adapter accepts exports shaped like
+  its demo (`--adapter corebank-ledger`, see [docs/DATA_CONTRACT.md](docs/DATA_CONTRACT.md)).
+* Downstream: [fraud-detection-ml](https://github.com/Adetlo/fraud-detection-ml) scores
+  transactions for fraud risk and ships its own adapter for this pipeline's curated Parquet shape.
+
+The projects complement each other but there is no live integration between them: each defines
+its own contract, sample data and runtime. Overview on the [GitHub profile](https://github.com/Adetlo).
 
 ## 2. Why this project exists
 

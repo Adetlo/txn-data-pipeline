@@ -3,10 +3,11 @@
 ## Scope
 
 `txn-data-pipeline` is an independent educational project. It processes synthetic
-financial transaction data only, is not affiliated with any bank or production system
-and makes no compliance claims. The threat model is that of an open-source developer
-tool: supply-chain issues in dependencies, unsafe handling of local files, and code
-defects that could mislead someone who adapts the project for real data.
+financial transaction data only: no real customer, account or counterparty data is used,
+needed or accepted. It is not affiliated with any bank or production system, carries no
+production financial workload and makes no compliance claims. The threat model is that of
+an open-source developer tool: supply-chain issues in dependencies, unsafe handling of local
+files, and code defects that could mislead someone who adapts the project for real data.
 
 ## Reporting a vulnerability
 
