@@ -1,0 +1,55 @@
+name: Bug report
+description: Something in Transaction Data Pipeline behaves differently from what the README or docs describe.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. This is an educational project that works with **synthetic data only**.
+        Please do not paste real customer, account or payment data into an issue.
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version, how you ran it (uv, Docker, CI) and the commit or tag.
+      placeholder: "macOS 15, Python 3.12.6, uv 0.8, commit abc1234"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Exact commands and inputs. Sample files from `examples/` or generated data are ideal.
+      placeholder: |
+        1. uv run txn-pipeline run --input data/samples/transactions_sample.csv
+        2. ...
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include the error code or message if there is one.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or output
+      description: Relevant log lines, stack trace or API response. Redact anything you would not post publicly.
+      render: text
+  - type: checkboxes
+    id: synthetic
+    attributes:
+      label: Data confirmation
+      options:
+        - label: The report uses synthetic or generated data only (no real customer, account or payment data).
+          required: true

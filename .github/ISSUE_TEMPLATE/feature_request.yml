@@ -1,0 +1,30 @@
+name: Feature request
+description: Propose a capability or design change for Transaction Data Pipeline.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is hard, missing or risky today? Reference the README or docs section where relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed capability
+      description: What should the project do instead, and how would a user or operator exercise it?
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Architectural impact
+      description: Does this touch the data contract (docs/DATA_CONTRACT.md), rule ids (docs/DATA_QUALITY.md), batch state semantics or the warehouse model? Changes to documented decisions normally need a new ADR.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
