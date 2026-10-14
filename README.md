@@ -10,6 +10,12 @@ idempotent processing, reconciliation, lineage, restartability and operational o
 > financial data and generic banking concepts. It is not affiliated with, derived from, or
 > representative of any production banking system.
 
+> **Development history note.** This project was developed progressively beginning in 2024 and was
+> later consolidated for public release. Because complete original Git metadata was not retained,
+> portions of the repository history were reconstructed around known implementation phases.
+> Historical dates should be understood as approximate development milestones.
+> See [docs/HISTORY_RECONSTRUCTION.md](docs/HISTORY_RECONSTRUCTION.md).
+
 [![CI](https://github.com/Adetlo/txn-data-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/Adetlo/txn-data-pipeline/actions/workflows/ci.yml)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-blue)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
